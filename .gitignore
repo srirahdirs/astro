@@ -1,0 +1,20 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+# env
+.env
+.env.local
+.env*.local
+# next
+.next
+out
+uploads (optional: keep in git or not)
+public/uploads
+database
+.next
+.env
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
