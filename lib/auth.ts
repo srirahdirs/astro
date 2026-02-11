@@ -15,11 +15,11 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const [rows] = await pool.execute<User[]>(
+  const [rows] = await pool.execute(
     'SELECT id, email, password_hash, name, role, created_at FROM users WHERE email = ?',
     [email]
   );
-  const user = Array.isArray(rows) ? rows[0] : (rows as any)?.[0];
+  const user = (Array.isArray(rows) ? rows[0] : (rows as any)?.[0]) as User | undefined;
   return user || null;
 }
 

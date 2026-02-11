@@ -14,7 +14,7 @@ async function sendWhatsAppMessage(
   phoneNumberId: string,
   to: string,
   body: object
-): Promise<{ ok: boolean; error?: string; messageId?: string }> {
+): Promise<{ ok: true; messageId?: string } | { ok: false; error: string }> {
   const res = await fetch(`${BASE}/${API_VERSION}/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: {
