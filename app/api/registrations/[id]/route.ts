@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
     const updates: string[] = [];
-    const values: (string | number)[] = [];
+    const values: (string | number | null)[] = [];
     if (registration_id !== undefined) { updates.push('registration_id = ?'); values.push(registration_id); }
     if (name !== undefined) { updates.push('name = ?'); values.push(name); }
     if (role !== undefined) { updates.push('role = ?'); values.push(role); }
