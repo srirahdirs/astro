@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import WhatsAppNumberInput from '@/components/WhatsAppNumberInput';
 
 const MAX_WHATSAPP_NUMBERS = 5;
 
@@ -35,7 +36,7 @@ export default function SendProfileDetailsPage() {
   );
   const [whatsappNumbers, setWhatsappNumbers] = useState<string[]>(Array(MAX_WHATSAPP_NUMBERS).fill(''));
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ sentTo?: string[]; failed?: { number: string; error: string }[] } | null>(null);
+  const [result, setResult] = useState<{ whatsappLinks?: { number: string; url: string }[] } | null>(null);
   const [error, setError] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +128,11 @@ export default function SendProfileDetailsPage() {
       setError('Enter at least one WhatsApp number');
       return;
     }
+    const normalized = numbers.map((n) => (n.length === 10 ? `91${n}` : n.startsWith('91') ? n : n));
+    if (new Set(normalized).size < normalized.length) {
+      setError('Remove duplicate numbers before sending.');
+      return;
+    }
     if (!Object.values(fieldChecks).some(Boolean)) {
       setError('Select at least one field to send');
       return;
@@ -152,7 +158,7 @@ export default function SendProfileDetailsPage() {
         setError(data.error || 'Failed to send');
         return;
       }
-      setResult({ sentTo: data.sentTo, failed: data.failed });
+      setResult({ whatsappLinks: data.whatsappLinks });
     } catch {
       setError('Network error');
     } finally {
@@ -163,7 +169,7 @@ export default function SendProfileDetailsPage() {
   return (
     <div className="container-dashboard max-w-2xl">
       <h1 className="page-title">Send profile details to WhatsApp</h1>
-      <p className="text-slate-600 mb-6">Select a profile and choose which details to send. The selected fields will be sent as a text message to up to 5 WhatsApp numbers.</p>
+      <p className="text-slate-600 mb-6">Select a profile and choose which details to send. After submit, click each link to open WhatsApp and send the message to each number.</p>
 
       <form onSubmit={handleSubmit} className="card mb-6">
         <div className="space-y-4">
@@ -256,17 +262,17 @@ export default function SendProfileDetailsPage() {
 
               <div>
                 <label className="label">WhatsApp numbers (up to 5)</label>
-                <p className="text-xs text-slate-500 mb-2">91 will be prefixed if you enter 10 digits.</p>
+                <p className="text-xs text-slate-500 mb-2">
+                  Enter mobile numbers or type a Profile ID to search — select a profile to auto-fill their phone/WhatsApp.
+                </p>
                 <div className="space-y-2">
                   {whatsappNumbers.map((num, i) => (
-                    <input
+                    <WhatsAppNumberInput
                       key={i}
-                      type="text"
-                      className="input"
-                      placeholder={i === 0 ? 'e.g. 9876543210' : `Number ${i + 2}`}
                       value={num}
-                      onChange={(e) => setWhatsappAt(i, e.target.value)}
-                      maxLength={15}
+                      onChange={(v) => setWhatsappAt(i, v)}
+                      placeholder={i === 0 ? 'e.g. 9876543210 or type Profile ID' : `Number ${i + 2}`}
+                      otherValues={whatsappNumbers.filter((_, idx) => idx !== i)}
                     />
                   ))}
                 </div>
@@ -276,18 +282,28 @@ export default function SendProfileDetailsPage() {
         </div>
         {error && <p className="alert-error text-sm mt-2">{error}</p>}
         <button type="submit" className="btn-primary mt-4 w-full sm:w-auto" disabled={loading || !selectedProfile}>
-          {loading ? 'Sending...' : 'Send profile details to WhatsApp'}
+          {loading ? 'Processing...' : 'Open WhatsApp links'}
         </button>
       </form>
 
       {result && (
         <div className="card card-accent alert-success">
-          <h2 className="section-title-accent">Details sent</h2>
-          {result.sentTo && result.sentTo.length > 0 && (
-            <p className="text-sm">Sent to: <strong>{result.sentTo.join(', ')}</strong></p>
-          )}
-          {result.failed && result.failed.length > 0 && (
-            <p className="text-sm alert-warning mt-2">Failed: {result.failed.map((f) => `${f.number} (${f.error})`).join('; ')}</p>
+          <h2 className="section-title-accent">Ready to send</h2>
+          <p className="text-sm text-slate-700 mb-3">Click each button to open WhatsApp and send the message:</p>
+          {result.whatsappLinks && result.whatsappLinks.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {result.whatsappLinks.map(({ number, url }) => (
+                  <a
+                    key={number}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+                  >
+                    Send to {number}
+                  </a>
+              ))}
+            </div>
           )}
         </div>
       )}

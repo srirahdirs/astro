@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth';
 import pool from '@/lib/db';
-import { sendTextToWhatsApp, isWhatsAppConfigured } from '@/lib/whatsapp';
 
 const FIELD_KEYS = ['name', 'phone', 'whatsapp', 'address'] as const;
 type FieldKey = (typeof FIELD_KEYS)[number];
@@ -55,28 +54,14 @@ export async function POST(req: NextRequest) {
       : { name: profile.name, phone: profile.phone, whatsapp: profile.whatsapp_number, address: profile.address };
     const text = buildMessage(values, Object.fromEntries(FIELD_KEYS.map((k) => [k, !!fields[k]])) as Record<FieldKey, boolean>);
 
-    const sentTo: string[] = [];
-    const failed: { number: string; error: string }[] = [];
-
-    if (isWhatsAppConfigured()) {
-      for (const num of whatsappNumbers) {
-        const result = await sendTextToWhatsApp(num, text);
-        if (result.ok) sentTo.push(num);
-        else failed.push({ number: num, error: result.error });
-      }
-    } else {
-      return NextResponse.json({
-        ok: false,
-        error: 'WhatsApp not configured',
-        whatsappLink: `https://wa.me/${whatsappNumbers[0]}?text=${encodeURIComponent(text)}`,
-      }, { status: 400 });
-    }
+    const whatsappLinks = whatsappNumbers.map((num) => ({
+      number: num,
+      url: `https://wa.me/${num}?text=${encodeURIComponent(text)}`,
+    }));
 
     return NextResponse.json({
       ok: true,
-      sentTo,
-      failed: failed.length ? failed : undefined,
-      whatsappSent: sentTo.length > 0,
+      whatsappLinks,
     });
   } catch (e: any) {
     if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

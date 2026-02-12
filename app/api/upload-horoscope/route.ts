@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth';
 import pool from '@/lib/db';
-import { sendDocumentToWhatsApp, isWhatsAppConfigured } from '@/lib/whatsapp';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -41,40 +40,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sentTo: string[] = [];
-    const failed: { number: string; error: string }[] = [];
-    let whatsappSent = false;
-    let whatsappError: string | null = null;
-    let whatsappLink: string | null = null;
-
-    if (whatsappNumbers.length > 0) {
-      if (isWhatsAppConfigured()) {
-        const fileName = file.name || 'horoscope.pdf';
-        for (const num of whatsappNumbers) {
-          const sendResult = await sendDocumentToWhatsApp(num, fileUrl, fileName, 'Horoscope');
-          if (sendResult.ok) {
-            sentTo.push(num);
-            whatsappSent = true;
-          } else {
-            failed.push({ number: num, error: sendResult.error || 'Send failed' });
-            if (!whatsappLink) whatsappLink = `https://wa.me/${num}?text=${encodeURIComponent(`Horoscope: ${fileUrl}`)}`;
-          }
-        }
-        if (failed.length > 0 && !whatsappError) whatsappError = failed.map((f) => f.error).join('; ');
-      } else {
-        whatsappLink = `https://wa.me/${whatsappNumbers[0]}?text=${encodeURIComponent(`Horoscope: ${fileUrl}`)}`;
-      }
-    }
+    const messageText = `Horoscope: ${fileUrl}`;
+    const whatsappLinks = whatsappNumbers.map((num) => ({
+      number: num,
+      url: `https://wa.me/${num}?text=${encodeURIComponent(messageText)}`,
+    }));
 
     return NextResponse.json({
       ok: true,
       path: relativePath,
       url: fileUrl,
-      whatsappSent,
-      whatsappError: whatsappError || undefined,
-      whatsappLink,
-      sentTo: sentTo.length > 0 ? sentTo : undefined,
-      failed: failed.length > 0 ? failed : undefined,
+      whatsappLinks,
       registration_id: registration_id || undefined,
     });
   } catch (e: any) {

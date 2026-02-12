@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
       query += ' AND registration_id LIKE CONCAT(?, \'%\')';
       params.push(prefix);
     } else if (search) {
-      query += ' AND (registration_id LIKE ? OR name LIKE ? OR phone LIKE ?)';
+      query += ' AND (registration_id LIKE ? OR name LIKE ? OR phone LIKE ? OR whatsapp_number LIKE ?)';
       const term = `%${search}%`;
-      params.push(term, term, term);
+      params.push(term, term, term, term);
     }
     query += ' ORDER BY registration_id ASC LIMIT 30';
     const [rows] = await pool.execute(query, params);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import WhatsAppNumberInput from '@/components/WhatsAppNumberInput';
 
 const MAX_WHATSAPP_NUMBERS = 5;
 
@@ -34,11 +35,7 @@ export default function UploadHoroscopePage() {
   const [result, setResult] = useState<{
     path: string;
     url: string;
-    whatsappSent?: boolean;
-    whatsappError?: string;
-    whatsappLink: string | null;
-    sentTo?: string[];
-    failed?: { number: string; error: string }[];
+    whatsappLinks?: { number: string; url: string }[];
     registration_id?: string;
   } | null>(null);
   const [error, setError] = useState('');
@@ -121,6 +118,12 @@ export default function UploadHoroscopePage() {
       setError('Please select a horoscope file');
       return;
     }
+    const numbers = whatsappNumbers.map((n) => n.trim().replace(/\D/g, '')).filter(Boolean);
+    const normalized = numbers.map((n) => (n.length === 10 ? `91${n}` : n.startsWith('91') ? n : n));
+    if (numbers.length > 0 && new Set(normalized).size < normalized.length) {
+      setError('Remove duplicate numbers before sending.');
+      return;
+    }
     setLoading(true);
     try {
       const formData = new FormData();
@@ -152,7 +155,7 @@ export default function UploadHoroscopePage() {
     <div className="container-dashboard">
       <h1 className="page-title">Upload horoscope</h1>
       <p className="text-navy-600 mb-6">
-        Upload a horoscope (PDF or image). Optionally link to a profile and enter up to 5 WhatsApp numbers. The document can be sent to each number.
+        Upload a horoscope (PDF or image). Optionally link to a profile and enter up to 5 WhatsApp numbers. After upload, click each link to open WhatsApp and send (message includes file link).
       </p>
 
       <form onSubmit={handleSubmit} className="card mb-6">
@@ -240,17 +243,17 @@ export default function UploadHoroscopePage() {
 
           <div>
             <label className="label">WhatsApp numbers (optional, up to 5)</label>
-            <p className="text-xs text-navy-500 mb-2">Enter mobile numbers; 91 will be prefixed if you enter 10 digits.</p>
+            <p className="text-xs text-navy-500 mb-2">
+              Enter mobile numbers or type a Profile ID to search — select a profile to auto-fill their phone/WhatsApp.
+            </p>
             <div className="space-y-2">
               {whatsappNumbers.map((num, i) => (
-                <input
+                <WhatsAppNumberInput
                   key={i}
-                  type="text"
-                  className="input"
-                  placeholder={i === 0 ? 'e.g. 9876543210 or 919876543210' : `Number ${i + 2}`}
                   value={num}
-                  onChange={(e) => setWhatsappAt(i, e.target.value)}
-                  maxLength={15}
+                  onChange={(v) => setWhatsappAt(i, v)}
+                  placeholder={i === 0 ? 'e.g. 9876543210 or type Profile ID (e.g. 40001)' : `Number ${i + 2}`}
+                  otherValues={whatsappNumbers.filter((_, idx) => idx !== i)}
                 />
               ))}
             </div>
@@ -258,7 +261,7 @@ export default function UploadHoroscopePage() {
         </div>
         {error && <p className="alert-error text-sm mt-2">{error}</p>}
         <button type="submit" className="btn-primary mt-4 w-full sm:w-auto" disabled={loading}>
-          {loading ? 'Uploading horoscope & sending...' : 'Upload horoscope & send to WhatsApp'}
+          {loading ? 'Uploading...' : 'Upload horoscope'}
         </button>
       </form>
 
@@ -271,32 +274,22 @@ export default function UploadHoroscopePage() {
               Open horoscope
             </a>
           </p>
-          {result.whatsappSent && (
-            <div className="mt-2">
-              <p className="text-sm text-emerald-700 font-medium">Sent to WhatsApp.</p>
-              {result.sentTo && result.sentTo.length > 0 && (
-                <p className="text-xs text-navy-600 mt-1">Sent to: <strong>{result.sentTo.join(', ')}</strong></p>
-              )}
-              {result.failed && result.failed.length > 0 && (
-                <p className="text-xs text-amber-700 mt-1">
-                  Failed: {result.failed.map((f) => `${f.number} (${f.error})`).join('; ')}
-                </p>
-              )}
-              <p className="text-xs text-navy-600 mt-1">
-                If not received: check WhatsApp Message requests and Meta → WhatsApp → API Setup → To.
-              </p>
-            </div>
-          )}
-          {result.whatsappError && (
-            <div className="text-sm text-amber-700 mt-2">
-              <p className="font-medium">Could not send: {result.whatsappError}</p>
-              {result.whatsappLink && (
-                <p className="mt-2">
-                  <a href={result.whatsappLink} target="_blank" rel="noopener noreferrer" className="link">
-                    Send via WhatsApp link
+          {result.whatsappLinks && result.whatsappLinks.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm text-navy-700 font-medium mb-2">Send via WhatsApp — click each to open chat and send:</p>
+              <div className="flex flex-wrap gap-2">
+                {result.whatsappLinks.map(({ number, url }) => (
+                  <a
+                    key={number}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+                  >
+                    Send to {number}
                   </a>
-                </p>
-              )}
+                ))}
+              </div>
             </div>
           )}
         </div>
