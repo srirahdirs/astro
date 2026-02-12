@@ -17,30 +17,42 @@ export async function GET(req: NextRequest) {
     const profile = Array.isArray(regRow) ? (regRow as any[])[0] : (regRow as any)?.[0] || null;
 
     // Horoscope sent to: from upload-horoscope when user sent PDF to these numbers
-    const [horoscopeSentRows] = await pool.execute(
-      `SELECT h.recipient_whatsapp, h.sent_at,
-              (SELECT r2.registration_id FROM registrations r2 WHERE r2.whatsapp_number = h.recipient_whatsapp OR r2.phone = h.recipient_whatsapp OR r2.whatsapp_number = SUBSTRING(h.recipient_whatsapp, 3) OR r2.phone = SUBSTRING(h.recipient_whatsapp, 3) LIMIT 1) AS match_registration_id,
-              (SELECT r2.name FROM registrations r2 WHERE r2.whatsapp_number = h.recipient_whatsapp OR r2.phone = h.recipient_whatsapp OR r2.whatsapp_number = SUBSTRING(h.recipient_whatsapp, 3) OR r2.phone = SUBSTRING(h.recipient_whatsapp, 3) LIMIT 1) AS match_name,
-              (SELECT r2.role FROM registrations r2 WHERE r2.whatsapp_number = h.recipient_whatsapp OR r2.phone = h.recipient_whatsapp OR r2.whatsapp_number = SUBSTRING(h.recipient_whatsapp, 3) OR r2.phone = SUBSTRING(h.recipient_whatsapp, 3) LIMIT 1) AS match_role
-       FROM horoscope_sends h
-       WHERE h.registration_id = ?
-       ORDER BY h.sent_at DESC`,
-      [registrationId]
-    );
-    const horoscopeSentTo = Array.isArray(horoscopeSentRows) ? horoscopeSentRows : (horoscopeSentRows as any) || [];
+    let horoscopeSentTo: any[] = [];
+    try {
+      const [horoscopeSentRows] = await pool.execute(
+        `SELECT h.recipient_whatsapp, h.sent_at,
+                (SELECT r2.registration_id FROM registrations r2 WHERE r2.whatsapp_number COLLATE utf8mb4_unicode_ci = h.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = h.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.whatsapp_number COLLATE utf8mb4_unicode_ci = SUBSTRING(h.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = SUBSTRING(h.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci LIMIT 1) AS match_registration_id,
+                (SELECT r2.name FROM registrations r2 WHERE r2.whatsapp_number COLLATE utf8mb4_unicode_ci = h.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = h.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.whatsapp_number COLLATE utf8mb4_unicode_ci = SUBSTRING(h.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = SUBSTRING(h.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci LIMIT 1) AS match_name,
+                (SELECT r2.role FROM registrations r2 WHERE r2.whatsapp_number COLLATE utf8mb4_unicode_ci = h.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = h.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.whatsapp_number COLLATE utf8mb4_unicode_ci = SUBSTRING(h.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = SUBSTRING(h.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci LIMIT 1) AS match_role
+         FROM horoscope_sends h
+         WHERE h.registration_id = ?
+         ORDER BY h.sent_at DESC`,
+        [registrationId]
+      );
+      horoscopeSentTo = Array.isArray(horoscopeSentRows) ? horoscopeSentRows : (horoscopeSentRows as any) || [];
+    } catch (err: any) {
+      // Tables may not exist if migration not run in production
+      console.error('[lookup] horoscope_sends:', err?.message || err);
+    }
 
     // Profile details sent to: from send-profile-details when user sent details to these numbers
-    const [detailSentRows] = await pool.execute(
-      `SELECT p.recipient_whatsapp, p.fields_sent, p.sent_at,
-              (SELECT r2.registration_id FROM registrations r2 WHERE r2.whatsapp_number = p.recipient_whatsapp OR r2.phone = p.recipient_whatsapp OR r2.whatsapp_number = SUBSTRING(p.recipient_whatsapp, 3) OR r2.phone = SUBSTRING(p.recipient_whatsapp, 3) LIMIT 1) AS match_registration_id,
-              (SELECT r2.name FROM registrations r2 WHERE r2.whatsapp_number = p.recipient_whatsapp OR r2.phone = p.recipient_whatsapp OR r2.whatsapp_number = SUBSTRING(p.recipient_whatsapp, 3) OR r2.phone = SUBSTRING(p.recipient_whatsapp, 3) LIMIT 1) AS match_name,
-              (SELECT r2.role FROM registrations r2 WHERE r2.whatsapp_number = p.recipient_whatsapp OR r2.phone = p.recipient_whatsapp OR r2.whatsapp_number = SUBSTRING(p.recipient_whatsapp, 3) OR r2.phone = SUBSTRING(p.recipient_whatsapp, 3) LIMIT 1) AS match_role
-       FROM profile_detail_sends p
-       WHERE p.registration_id = ?
-       ORDER BY p.sent_at DESC`,
-      [registrationId]
-    );
-    const profileDetailsSentTo = Array.isArray(detailSentRows) ? detailSentRows : (detailSentRows as any) || [];
+    let profileDetailsSentTo: any[] = [];
+    try {
+      const [detailSentRows] = await pool.execute(
+        `SELECT p.recipient_whatsapp, p.fields_sent, p.sent_at,
+                (SELECT r2.registration_id FROM registrations r2 WHERE r2.whatsapp_number COLLATE utf8mb4_unicode_ci = p.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = p.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.whatsapp_number COLLATE utf8mb4_unicode_ci = SUBSTRING(p.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = SUBSTRING(p.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci LIMIT 1) AS match_registration_id,
+                (SELECT r2.name FROM registrations r2 WHERE r2.whatsapp_number COLLATE utf8mb4_unicode_ci = p.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = p.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.whatsapp_number COLLATE utf8mb4_unicode_ci = SUBSTRING(p.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = SUBSTRING(p.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci LIMIT 1) AS match_name,
+                (SELECT r2.role FROM registrations r2 WHERE r2.whatsapp_number COLLATE utf8mb4_unicode_ci = p.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = p.recipient_whatsapp COLLATE utf8mb4_unicode_ci OR r2.whatsapp_number COLLATE utf8mb4_unicode_ci = SUBSTRING(p.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci OR r2.phone COLLATE utf8mb4_unicode_ci = SUBSTRING(p.recipient_whatsapp, 3) COLLATE utf8mb4_unicode_ci LIMIT 1) AS match_role
+         FROM profile_detail_sends p
+         WHERE p.registration_id = ?
+         ORDER BY p.sent_at DESC`,
+        [registrationId]
+      );
+      profileDetailsSentTo = Array.isArray(detailSentRows) ? detailSentRows : (detailSentRows as any) || [];
+    } catch (err: any) {
+      // Tables may not exist if migration not run in production
+      console.error('[lookup] profile_detail_sends:', err?.message || err);
+    }
 
     return NextResponse.json({
       registrationId,
@@ -53,6 +65,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error(e);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    const debug = req.nextUrl.searchParams.get('debug') === '1';
+    return NextResponse.json(
+      { error: 'Server error', ...(debug && { debug: e?.message || String(e) }) },
+      { status: 500 }
+    );
   }
 }

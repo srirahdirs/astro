@@ -71,11 +71,13 @@ export default function LookupPage() {
     setResult(null);
     if (!profileId.trim()) return;
     setLoading(true);
+    const debug = searchParams.get('debug') === '1';
     try {
-      const res = await fetch(`/api/lookup?id=${encodeURIComponent(profileId.trim())}`);
+      const res = await fetch(`/api/lookup?id=${encodeURIComponent(profileId.trim())}${debug ? '&debug=1' : ''}`);
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Search failed');
+        const msg = data.debug ? `${data.error}: ${data.debug}` : (data.error || 'Search failed');
+        setError(msg);
         return;
       }
       setResult(data);
