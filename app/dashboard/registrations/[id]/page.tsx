@@ -9,6 +9,7 @@ export default function EditRegistrationPage() {
   const params = useParams();
   const id = params.id as string;
   const [form, setForm] = useState({ registration_id: '', name: '', role: 'male', phone: '', whatsapp_number: '', notes: '', address: '' });
+  const [horoscopePath, setHoroscopePath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -27,15 +28,18 @@ export default function EditRegistrationPage() {
   useEffect(() => {
     fetch(`/api/registrations/${id}`)
       .then((res) => res.ok ? res.json() : Promise.reject(res))
-      .then((data) => setForm({
-        registration_id: data.registration_id || '',
-        name: data.name || '',
-        role: data.role || 'male',
-        phone: data.phone || '',
-        whatsapp_number: data.whatsapp_number || '',
-        notes: data.notes || '',
-        address: data.address || '',
-      }))
+      .then((data) => {
+        setForm({
+          registration_id: data.registration_id || '',
+          name: data.name || '',
+          role: data.role || 'male',
+          phone: data.phone || '',
+          whatsapp_number: data.whatsapp_number || '',
+          notes: data.notes || '',
+          address: data.address || '',
+        });
+        setHoroscopePath(data.horoscope_path || null);
+      })
       .catch(() => setError('Not found'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -119,6 +123,21 @@ export default function EditRegistrationPage() {
             <label className="label">Address</label>
             <input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Address" />
           </div>
+          {horoscopePath && (
+            <div className="sm:col-span-2">
+              <label className="label">Horoscope PDF</label>
+              <p className="text-sm text-navy-600">
+                <a
+                  href={horoscopePath.startsWith('http') ? horoscopePath : (typeof window !== 'undefined' ? window.location.origin : '') + horoscopePath}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link font-medium"
+                >
+                  View PDF
+                </a>
+              </p>
+            </div>
+          )}
         </div>
         <div className="mt-4">
           <label className="label">Notes</label>

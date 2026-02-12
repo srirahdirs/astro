@@ -8,6 +8,7 @@ const fontBody = DM_Sans({ weight: ['400', '500', '600', '700'], subsets: ['lati
 export const metadata: Metadata = {
   title: 'Wedding Profile Matcher',
   description: 'Track profiles and reminders for wedding matching',
+  icons: { icon: '/fav.png' },
 };
 
 export const viewport: Viewport = {

@@ -59,6 +59,14 @@ export async function POST(req: NextRequest) {
       url: `https://wa.me/${num}?text=${encodeURIComponent(text)}`,
     }));
 
+    const fieldsSent = Object.entries(fields).filter(([, v]) => v).map(([k]) => k);
+    for (const num of whatsappNumbers) {
+      await pool.execute(
+        'INSERT INTO profile_detail_sends (registration_id, recipient_whatsapp, fields_sent) VALUES (?, ?, ?)',
+        [registration_id, num, JSON.stringify(fieldsSent)]
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       whatsappLinks,

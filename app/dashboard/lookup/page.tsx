@@ -6,9 +6,9 @@ import { useSearchParams } from 'next/navigation';
 
 type LookupResult = {
   registrationId: string;
-  profile: { registration_id: string; name: string; role: string; phone: string; whatsapp_number: string } | null;
-  sharedTo: { recipient_registration_id: string; name: string; role: string; shared_at: string; shared_via: string }[];
-  receivedFrom: { sender_registration_id: string; name: string; role: string; shared_at: string; shared_via: string }[];
+  profile: { registration_id: string; name: string; role: string; phone: string; whatsapp_number: string; horoscope_path?: string | null } | null;
+  horoscopeSentTo: { recipient_whatsapp: string; sent_at: string; match_registration_id?: string; match_name?: string; match_role?: string }[];
+  profileDetailsSentTo: { recipient_whatsapp: string; fields_sent: string; sent_at: string; match_registration_id?: string; match_name?: string; match_role?: string }[];
 };
 
 type RegistrationOption = { registration_id: string; name: string; role: string };
@@ -170,43 +170,58 @@ export default function LookupPage() {
                     <dd>{result.profile.whatsapp_number}</dd>
                   </>
                 )}
+                {result.profile.horoscope_path && (
+                  <>
+                    <dt className="text-navy-500">Horoscope PDF</dt>
+                    <dd>
+                      <a
+                        href={result.profile.horoscope_path.startsWith('http') ? result.profile.horoscope_path : (typeof window !== 'undefined' ? window.location.origin : '') + result.profile.horoscope_path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link font-medium"
+                      >
+                        View PDF
+                      </a>
+                    </dd>
+                  </>
+                )}
               </dl>
             </div>
           )}
           {!result.profile && result.registrationId && (
-            <p className="alert-warning text-amber-800">No profile found for ID <strong>{result.registrationId}</strong>. Share history is shown below.</p>
+            <p className="alert-warning text-amber-800">No profile found for ID <strong>{result.registrationId}</strong>.</p>
           )}
 
-          {/* Two-column layout: Shared to (left) | Received from (right) */}
+          {/* Horoscope sent to | Profile details sent to */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div className="card min-w-0">
-              <h2 className="section-title-accent mb-3">Shared to (this profile was shared to these)</h2>
-              {result.sharedTo.length === 0 ? (
-                <p className="text-navy-600 text-sm py-2">Not shared to anyone.</p>
+              <h2 className="section-title-accent mb-3">Horoscope PDF sent to</h2>
+              <p className="text-xs text-navy-500 mb-2">From Upload horoscope when this profile&apos;s PDF was sent to these numbers.</p>
+              {result.horoscopeSentTo.length === 0 ? (
+                <p className="text-navy-600 text-sm py-2">Not sent to anyone yet.</p>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-navy-200/60">
                   <table className="w-full min-w-[280px] text-sm">
                     <thead>
                       <tr className="border-b border-navy-200 bg-navy-50/50">
-                        <th className="text-left p-2.5 font-semibold text-navy-700">ID</th>
-                        <th className="text-left p-2.5 font-semibold text-navy-700">Name</th>
-                        <th className="text-left p-2.5 font-semibold text-navy-700">Gender</th>
+                        <th className="text-left p-2.5 font-semibold text-navy-700">Recipient</th>
                         <th className="text-left p-2.5 font-semibold text-navy-700">Date & time</th>
-                        <th className="text-left p-2.5 font-semibold text-navy-700">Via</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {result.sharedTo.map((r) => (
-                        <tr key={r.recipient_registration_id} className="border-b border-navy-100 last:border-0 hover:bg-navy-50/30">
+                      {result.horoscopeSentTo.map((r, i) => (
+                        <tr key={`${r.recipient_whatsapp}-${r.sent_at}-${i}`} className="border-b border-navy-100 last:border-0 hover:bg-navy-50/30">
                           <td className="p-2.5 align-top">
-                            <Link href={`/dashboard/lookup?id=${r.recipient_registration_id}`} className="link font-medium">
-                              {r.recipient_registration_id}
-                            </Link>
+                            {r.match_registration_id ? (
+                              <Link href={`/dashboard/lookup?id=${r.match_registration_id}`} className="link font-medium">
+                                {r.match_registration_id}
+                              </Link>
+                            ) : (
+                              <span className="text-navy-800">{r.recipient_whatsapp}</span>
+                            )}
+                            {r.match_name && <span className="text-navy-600 ml-1">({r.match_name})</span>}
                           </td>
-                          <td className="p-2.5 align-top text-navy-800">{r.name}</td>
-                          <td className="p-2.5 align-top text-navy-600">{String(r.role).charAt(0).toUpperCase() + String(r.role).slice(1)}</td>
-                          <td className="p-2.5 align-top text-navy-600 whitespace-nowrap">{new Date(r.shared_at).toLocaleString()}</td>
-                          <td className="p-2.5 align-top text-navy-600">{r.shared_via}</td>
+                          <td className="p-2.5 align-top text-navy-600 whitespace-nowrap">{new Date(r.sent_at).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -216,35 +231,40 @@ export default function LookupPage() {
             </div>
 
             <div className="card min-w-0">
-              <h2 className="section-title-accent mb-3">Received from (we got this profile from these)</h2>
-              {result.receivedFrom.length === 0 ? (
-                <p className="text-navy-600 text-sm py-2">Not received from anyone.</p>
+              <h2 className="section-title-accent mb-3">Profile details sent to</h2>
+              <p className="text-xs text-navy-500 mb-2">From Send profile details when this profile&apos;s info was sent to these numbers.</p>
+              {result.profileDetailsSentTo.length === 0 ? (
+                <p className="text-navy-600 text-sm py-2">Not sent to anyone yet.</p>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-navy-200/60">
                   <table className="w-full min-w-[280px] text-sm">
                     <thead>
                       <tr className="border-b border-navy-200 bg-navy-50/50">
-                        <th className="text-left p-2.5 font-semibold text-navy-700">ID</th>
-                        <th className="text-left p-2.5 font-semibold text-navy-700">Name</th>
-                        <th className="text-left p-2.5 font-semibold text-navy-700">Gender</th>
+                        <th className="text-left p-2.5 font-semibold text-navy-700">Recipient</th>
+                        <th className="text-left p-2.5 font-semibold text-navy-700">Fields sent</th>
                         <th className="text-left p-2.5 font-semibold text-navy-700">Date & time</th>
-                        <th className="text-left p-2.5 font-semibold text-navy-700">Via</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {result.receivedFrom.map((r) => (
-                        <tr key={r.sender_registration_id} className="border-b border-navy-100 last:border-0 hover:bg-navy-50/30">
-                          <td className="p-2.5 align-top">
-                            <Link href={`/dashboard/lookup?id=${r.sender_registration_id}`} className="link font-medium">
-                              {r.sender_registration_id}
-                            </Link>
-                          </td>
-                          <td className="p-2.5 align-top text-navy-800">{r.name}</td>
-                          <td className="p-2.5 align-top text-navy-600">{String(r.role).charAt(0).toUpperCase() + String(r.role).slice(1)}</td>
-                          <td className="p-2.5 align-top text-navy-600 whitespace-nowrap">{new Date(r.shared_at).toLocaleString()}</td>
-                          <td className="p-2.5 align-top text-navy-600">{r.shared_via}</td>
-                        </tr>
-                      ))}
+                      {result.profileDetailsSentTo.map((r, i) => {
+                        const fields = typeof r.fields_sent === 'string' ? (() => { try { return JSON.parse(r.fields_sent); } catch { return []; } })() : (r.fields_sent || []);
+                        return (
+                          <tr key={`${r.recipient_whatsapp}-${r.sent_at}-${i}`} className="border-b border-navy-100 last:border-0 hover:bg-navy-50/30">
+                            <td className="p-2.5 align-top">
+                              {r.match_registration_id ? (
+                                <Link href={`/dashboard/lookup?id=${r.match_registration_id}`} className="link font-medium">
+                                  {r.match_registration_id}
+                                </Link>
+                              ) : (
+                                <span className="text-navy-800">{r.recipient_whatsapp}</span>
+                              )}
+                              {r.match_name && <span className="text-navy-600 ml-1">({r.match_name})</span>}
+                            </td>
+                            <td className="p-2.5 align-top text-navy-600">{Array.isArray(fields) ? fields.join(', ') : '—'}</td>
+                            <td className="p-2.5 align-top text-navy-600 whitespace-nowrap">{new Date(r.sent_at).toLocaleString()}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

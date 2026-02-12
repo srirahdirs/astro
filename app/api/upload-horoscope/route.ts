@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
     requireAdmin(session.role);
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
-    const registration_id = formData.get('registration_id') as string | null;
     const rawNumbers: string[] = [];
     for (let i = 1; i <= 5; i++) {
       const v = (formData.get(`whatsapp_${i}`) as string)?.trim()?.replace(/\D/g, '') || '';
@@ -19,13 +18,20 @@ export async function POST(req: NextRequest) {
     const whatsappNumbers = rawNumbers.map((n) => (n.length === 10 ? `91${n}` : n.startsWith('91') ? n : `91${n}`)).filter((n, i, a) => a.indexOf(n) === i);
 
     if (!file || file.size === 0) {
-      return NextResponse.json({ error: 'Horoscope file required' }, { status: 400 });
+      return NextResponse.json({ error: 'Horoscope PDF required' }, { status: 400 });
+    }
+    const ext = path.extname(file.name).toLowerCase();
+    if (ext !== '.pdf') {
+      return NextResponse.json({ error: 'Only PDF files are allowed' }, { status: 400 });
+    }
+    const registration_id = (formData.get('registration_id') as string)?.trim() || '';
+    if (!registration_id) {
+      return NextResponse.json({ error: 'Profile selection required to store the horoscope' }, { status: 400 });
     }
 
     const uploadDir = path.join(process.cwd(), 'public', 'uploads');
     await mkdir(uploadDir, { recursive: true });
-    const ext = path.extname(file.name) || '.pdf';
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`;
     const filepath = path.join(uploadDir, filename);
     const bytes = await file.arrayBuffer();
     await writeFile(filepath, Buffer.from(bytes));
@@ -33,14 +39,19 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const fileUrl = `${appUrl}${relativePath}`;
 
-    if (registration_id) {
+    await pool.execute(
+      'UPDATE registrations SET horoscope_path = ?, updated_at = CURRENT_TIMESTAMP WHERE registration_id = ?',
+      [relativePath, registration_id]
+    );
+
+    for (const num of whatsappNumbers) {
       await pool.execute(
-        'UPDATE registrations SET horoscope_path = ?, updated_at = CURRENT_TIMESTAMP WHERE registration_id = ?',
-        [relativePath, registration_id]
+        'INSERT INTO horoscope_sends (registration_id, recipient_whatsapp) VALUES (?, ?)',
+        [registration_id, num]
       );
     }
 
-    const messageText = `Horoscope: ${fileUrl}`;
+    const messageText = `Horoscope PDF:\n\n${fileUrl}`;
     const whatsappLinks = whatsappNumbers.map((num) => ({
       number: num,
       url: `https://wa.me/${num}?text=${encodeURIComponent(messageText)}`,
@@ -51,7 +62,7 @@ export async function POST(req: NextRequest) {
       path: relativePath,
       url: fileUrl,
       whatsappLinks,
-      registration_id: registration_id || undefined,
+      registration_id,
     });
   } catch (e: any) {
     if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

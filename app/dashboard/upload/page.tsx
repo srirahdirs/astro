@@ -30,6 +30,7 @@ export default function UploadHoroscopePage() {
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<SelectedProfile | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [whatsappNumbers, setWhatsappNumbers] = useState<string[]>(Array(MAX_WHATSAPP_NUMBERS).fill(''));
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
@@ -114,8 +115,19 @@ export default function UploadHoroscopePage() {
     e.preventDefault();
     setError('');
     setResult(null);
-    if (!file || file.size === 0) {
-      setError('Please select a horoscope file');
+    // Read file from input ref as fallback (state can be lost on re-renders)
+    const fileToUpload = fileInputRef.current?.files?.[0] || file;
+    if (!fileToUpload || fileToUpload.size === 0) {
+      setError('Please select a horoscope PDF file');
+      return;
+    }
+    const ext = fileToUpload.name.toLowerCase().slice(fileToUpload.name.lastIndexOf('.'));
+    if (ext !== '.pdf') {
+      setError('Only PDF files are allowed');
+      return;
+    }
+    if (!selectedProfile) {
+      setError('Please select a profile to store the horoscope with');
       return;
     }
     const numbers = whatsappNumbers.map((n) => n.trim().replace(/\D/g, '')).filter(Boolean);
@@ -127,9 +139,8 @@ export default function UploadHoroscopePage() {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.set('file', file);
-      const regId = selectedProfile?.registration_id ?? '';
-      if (regId) formData.set('registration_id', regId);
+      formData.set('file', fileToUpload);
+      formData.set('registration_id', selectedProfile.registration_id);
       whatsappNumbers.forEach((num, i) => {
         const digits = num.trim().replace(/\D/g, '');
         if (digits) formData.set(`whatsapp_${i + 1}`, digits);
@@ -144,6 +155,7 @@ export default function UploadHoroscopePage() {
       setFile(null);
       setSelectedProfile(null);
       setWhatsappNumbers(Array(MAX_WHATSAPP_NUMBERS).fill(''));
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch {
       setError('Network error');
     } finally {
@@ -155,24 +167,26 @@ export default function UploadHoroscopePage() {
     <div className="container-dashboard">
       <h1 className="page-title">Upload horoscope</h1>
       <p className="text-navy-600 mb-6">
-        Upload a horoscope (PDF or image). Optionally link to a profile and enter up to 5 WhatsApp numbers. After upload, click each link to open WhatsApp and send (message includes file link).
+        Upload a horoscope PDF. Select a profile to store it with, then enter up to 5 WhatsApp numbers. After upload, click each link to open WhatsApp and send (message includes PDF link).
       </p>
 
       <form onSubmit={handleSubmit} className="card mb-6">
         <div className="space-y-4">
           <div>
-            <label className="label">Horoscope file *</label>
+            <label className="label">Horoscope PDF *</label>
             <input
+              ref={fileInputRef}
               type="file"
-              accept=".pdf,image/*"
+              accept=".pdf,application/pdf"
               className="input"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               required
             />
+            <p className="text-xs text-navy-500 mt-1">PDF only. The file will be stored with the profile.</p>
           </div>
 
           <div ref={searchRef} className="relative">
-            <label className="label">Link to profile (optional)</label>
+            <label className="label">Link to profile *</label>
             <input
               type="text"
               className="input"
@@ -207,7 +221,7 @@ export default function UploadHoroscopePage() {
             {showSuggestions && !suggestionsLoading && profileSearch.trim() && profileSuggestions.length === 0 && (
               <p className="text-xs text-navy-500 mt-1">No profiles found.</p>
             )}
-            <p className="text-xs text-navy-500 mt-1">Select a profile to link this file. It will show under that profile.</p>
+            <p className="text-xs text-navy-500 mt-1">Required. PDF will be stored with this profile and shown under their profile.</p>
           </div>
 
           {selectedProfile && (
