@@ -62,15 +62,15 @@ export async function sendWhatsAppViaTwilio(
     }
     const toWhatsApp = `whatsapp:+${to}`;
     try {
-      const payload: Record<string, unknown> = {
+      const createOptions = {
         body: message,
         from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
         to: toWhatsApp,
+        ...(options?.mediaUrl && {
+          mediaUrl: Array.isArray(options.mediaUrl) ? options.mediaUrl : [options.mediaUrl],
+        }),
       };
-      if (options?.mediaUrl) {
-        payload.mediaUrl = Array.isArray(options.mediaUrl) ? options.mediaUrl : [options.mediaUrl];
-      }
-      const msg = await client.messages.create(payload);
+      const msg = await client.messages.create(createOptions);
       results.push({ number: to, ok: true, sid: msg.sid });
     } catch (e: unknown) {
       const err = e as { message?: string; code?: number };
