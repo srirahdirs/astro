@@ -53,7 +53,7 @@ function getSqliteDb(): import('better-sqlite3').Database {
       db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run('admin@local', hash, 'Admin', 'admin');
     }
   }
-  return _sqliteDb;
+  return _sqliteDb!;
 }
 
 /** Translate MySQL-specific SQL to SQLite when needed */
