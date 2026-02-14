@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth';
 import pool from '@/lib/db';
+import { sendWhatsAppViaTwilio } from '@/lib/whatsapp';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -29,13 +30,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Profile selection required to store the horoscope' }, { status: 400 });
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    const uploadDir = process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads');
     await mkdir(uploadDir, { recursive: true });
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`;
     const filepath = path.join(uploadDir, filename);
     const bytes = await file.arrayBuffer();
     await writeFile(filepath, Buffer.from(bytes));
-    const relativePath = `/uploads/${filename}`;
+    const relativePath = process.env.UPLOADS_DIR ? `/api/serve-upload/${filename}` : `/uploads/${filename}`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const fileUrl = `${appUrl}${relativePath}`;
 
@@ -51,10 +52,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const messageText = `Horoscope PDF:\n\n${fileUrl}`;
+    const sendViaTwilio = (formData.get('send_via_twilio') as string) === 'true';
+
+    let twilioResults: { number: string; ok: boolean; sid?: string; error?: string }[] | undefined;
+    if (sendViaTwilio && whatsappNumbers.length > 0) {
+      const { results } = await sendWhatsAppViaTwilio(
+        whatsappNumbers,
+        'Your horoscope PDF is attached.',
+        { mediaUrl: fileUrl }
+      );
+      twilioResults = results;
+    }
+
+    const messageForManual = `Horoscope PDF:\n\n${fileUrl}`;
     const whatsappLinks = whatsappNumbers.map((num) => ({
       number: num,
-      url: `https://wa.me/${num}?text=${encodeURIComponent(messageText)}`,
+      url: `https://wa.me/${num}?text=${encodeURIComponent(messageForManual)}`,
     }));
 
     return NextResponse.json({
@@ -62,6 +75,7 @@ export async function POST(req: NextRequest) {
       path: relativePath,
       url: fileUrl,
       whatsappLinks,
+      twilioResults,
       registration_id,
     });
   } catch (e: any) {

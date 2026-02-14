@@ -37,8 +37,11 @@ export default function UploadHoroscopePage() {
     path: string;
     url: string;
     whatsappLinks?: { number: string; url: string }[];
+    twilioResults?: { number: string; ok: boolean; sid?: string; error?: string }[];
     registration_id?: string;
   } | null>(null);
+  const [sendViaTwilio, setSendViaTwilio] = useState(false);
+  const [twilioConfigured, setTwilioConfigured] = useState(false);
   const [error, setError] = useState('');
 
   function setWhatsappAt(index: number, value: string) {
@@ -48,6 +51,13 @@ export default function UploadHoroscopePage() {
       return next;
     });
   }
+
+  useEffect(() => {
+    fetch('/api/whatsapp-status')
+      .then((r) => r.json())
+      .then((d) => setTwilioConfigured(!!d?.twilioConfigured))
+      .catch(() => setTwilioConfigured(false));
+  }, []);
 
   useEffect(() => {
     if (!profileSearch.trim()) {
@@ -141,6 +151,7 @@ export default function UploadHoroscopePage() {
       const formData = new FormData();
       formData.set('file', fileToUpload);
       formData.set('registration_id', selectedProfile.registration_id);
+      formData.set('send_via_twilio', String(sendViaTwilio));
       whatsappNumbers.forEach((num, i) => {
         const digits = num.trim().replace(/\D/g, '');
         if (digits) formData.set(`whatsapp_${i + 1}`, digits);
@@ -255,6 +266,23 @@ export default function UploadHoroscopePage() {
             </div>
           )}
 
+          {twilioConfigured && (
+            <div>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendViaTwilio}
+                  onChange={(e) => setSendViaTwilio(e.target.checked)}
+                  className="rounded border-navy-300 text-violet-600 focus:ring-violet-500"
+                />
+                <span className="text-sm font-medium">Send via Twilio (automatic)</span>
+              </label>
+              <p className="text-xs text-navy-500 mt-1">
+                When checked, the PDF is sent as a WhatsApp attachment. Set NEXT_PUBLIC_APP_URL to your production URL.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="label">WhatsApp numbers (optional, up to 5)</label>
             <p className="text-xs text-navy-500 mb-2">
@@ -288,9 +316,27 @@ export default function UploadHoroscopePage() {
               Open horoscope
             </a>
           </p>
+          {result.twilioResults && result.twilioResults.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm text-navy-700 font-medium mb-2">Twilio send results:</p>
+              <ul className="space-y-1 text-sm">
+                {result.twilioResults.map((r) => (
+                  <li key={r.number}>
+                    {r.number}: {r.ok ? (
+                      <span className="text-emerald-600">Sent ✓</span>
+                    ) : (
+                      <span className="text-red-600">{r.error || 'Failed'}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {result.whatsappLinks && result.whatsappLinks.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm text-navy-700 font-medium mb-2">Send via WhatsApp — click each to open chat and send:</p>
+              <p className="text-sm text-navy-700 font-medium mb-2">
+                {result.twilioResults ? 'Or send manually — click each to open chat:' : 'Send via WhatsApp — click each to open chat and send:'}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {result.whatsappLinks.map(({ number, url }) => (
                   <a

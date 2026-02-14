@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     let query = 'SELECT id, registration_id, name, role, phone, whatsapp_number, horoscope_path, notes, address, created_at FROM registrations WHERE 1=1';
     const params: (string | number)[] = [];
     if (prefix) {
-      query += ' AND registration_id LIKE CONCAT(?, \'%\')';
-      params.push(prefix);
+      query += ' AND registration_id LIKE ?';
+      params.push(`${prefix}%`);
     } else if (search) {
       query += ' AND (registration_id LIKE ? OR name LIKE ? OR phone LIKE ? OR whatsapp_number LIKE ?)';
       const term = `%${search}%`;

@@ -2,30 +2,67 @@
   "name": "wedding-horoscope-matcher",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "electron:dev": "npm run clean && next build && electron .",
+    "electron:build": "npm run clean && next build && electron-builder",
+    "electron:start": "electron ."
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.6.0",
     "mysql2": "^3.11.0",
     "next": "14.2.18",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "twilio": "^5.12.1"
+  },
+  "optionalDependencies": {
+    "@electron/rebuild": "^3.6.0"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.20",
-    "dotenv": "^16.4.5",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
     "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.5",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.18",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3"
+  },
+  "build": {
+    "appId": "com.weddinghoroscope.matcher",
+    "productName": "Wedding Horoscope Matcher",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      ".next/**",
+      "node_modules/**",
+      "public/**",
+      "electron/**",
+      "docs/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/fav.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true
+    }
   }
 }
