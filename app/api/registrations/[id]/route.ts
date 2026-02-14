@@ -13,8 +13,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const row = Array.isArray(rows) ? (rows as any[])[0] : (rows as any)?.[0];
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(row);
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error(e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
@@ -64,11 +64,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     values.push(id);
     await pool.execute(`UPDATE registrations SET ${updates.join(', ')} WHERE id = ?`, values);
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    if ((e as any)?.code === 'ER_DUP_ENTRY') {
-      const msg = (e as any)?.message || '';
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (e instanceof Error && e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const err = e as { code?: string; message?: string };
+    if (err?.code === 'ER_DUP_ENTRY') {
+      const msg = err?.message || '';
       if (msg.includes('registration_id')) return NextResponse.json({ error: 'This Profile ID is already in use. Profile ID must be unique.' }, { status: 409 });
       if (msg.includes('phone')) return NextResponse.json({ error: 'This phone number is already registered' }, { status: 409 });
       if (msg.includes('whatsapp')) return NextResponse.json({ error: 'This WhatsApp number is already registered' }, { status: 409 });

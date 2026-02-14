@@ -21,10 +21,11 @@ export async function POST(req: NextRequest) {
       [sender_registration_id, recipient_registration_id, shared_via || 'manual', notes || null]
     );
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    if ((e as any)?.code === 'ER_NO_REFERENCED_ROW_2') {
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (e instanceof Error && e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const err = e as { code?: string };
+    if (err?.code === 'ER_NO_REFERENCED_ROW_2') {
       return NextResponse.json({ error: 'Profile ID not found. Add the profile first.' }, { status: 400 });
     }
     console.error(e);

@@ -11,7 +11,7 @@ export async function getFollowUpsDueToday() {
        ORDER BY f.due_date ASC, f.id DESC`
     );
     return Array.isArray(rows) ? rows : (rows as any) || [];
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('getFollowUpsDueToday error:', err);
     return [];
   }

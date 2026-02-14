@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
     const [rows] = await pool.execute(query, params);
     const list = Array.isArray(rows) ? rows : (rows as any) || [];
     return NextResponse.json({ registrations: list });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error(e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
@@ -74,11 +74,12 @@ export async function POST(req: NextRequest) {
       [regIdVal, name, role, phoneVal, whatsappVal, notes || null, (address && String(address).trim()) || null]
     );
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    if ((e as any)?.code === 'ER_DUP_ENTRY') {
-      const msg = (e as any)?.message || '';
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (e instanceof Error && e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const err = e as { code?: string; message?: string };
+    if (err?.code === 'ER_DUP_ENTRY') {
+      const msg = err?.message || '';
       if (msg.includes('registration_id')) return NextResponse.json({ error: 'This Profile ID is already in use. Profile ID must be unique.' }, { status: 409 });
       if (msg.includes('phone')) return NextResponse.json({ error: 'This phone number is already registered' }, { status: 409 });
       if (msg.includes('whatsapp')) return NextResponse.json({ error: 'This WhatsApp number is already registered' }, { status: 409 });

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
     await setSession(user.id, user.role);
     return NextResponse.json({ ok: true, role: user.role });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error(e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

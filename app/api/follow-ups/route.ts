@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     const [rows] = await pool.execute(query, params);
     const list = Array.isArray(rows) ? rows : (rows as any) || [];
     return NextResponse.json({ followUps: list });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error(e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
     );
     const insertId = (result as any)?.insertId;
     return NextResponse.json({ id: insertId, ok: true });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (e instanceof Error && e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     console.error(e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

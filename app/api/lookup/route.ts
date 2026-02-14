@@ -30,9 +30,9 @@ export async function GET(req: NextRequest) {
         [registrationId]
       );
       horoscopeSentTo = Array.isArray(horoscopeSentRows) ? horoscopeSentRows : (horoscopeSentRows as any) || [];
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Tables may not exist if migration not run in production
-      console.error('[lookup] horoscope_sends:', err?.message || err);
+      console.error('[lookup] horoscope_sends:', err instanceof Error ? err.message : err);
     }
 
     // Profile details sent to: from send-profile-details when user sent details to these numbers
@@ -49,9 +49,9 @@ export async function GET(req: NextRequest) {
         [registrationId]
       );
       profileDetailsSentTo = Array.isArray(detailSentRows) ? detailSentRows : (detailSentRows as any) || [];
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Tables may not exist if migration not run in production
-      console.error('[lookup] profile_detail_sends:', err?.message || err);
+      console.error('[lookup] profile_detail_sends:', err instanceof Error ? err.message : err);
     }
 
     return NextResponse.json({
@@ -60,14 +60,14 @@ export async function GET(req: NextRequest) {
       horoscopeSentTo,
       profileDetailsSentTo,
     });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') {
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error(e);
     const debug = req.nextUrl.searchParams.get('debug') === '1';
     return NextResponse.json(
-      { error: 'Server error', ...(debug && { debug: e?.message || String(e) }) },
+      { error: 'Server error', ...(debug && { debug: e instanceof Error ? e.message : String(e) }) },
       { status: 500 }
     );
   }

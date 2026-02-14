@@ -34,7 +34,7 @@ export async function setViewerAllowedMenus(menus: string[]): Promise<void> {
       'INSERT INTO app_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
       [KEY_VIEWER_MENUS, value]
     );
-  } catch (e) {
+  } catch {
     throw new Error('Settings table not found. Run database/migration-rbac-settings.sql to create app_settings.');
   }
 }

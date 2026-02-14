@@ -20,8 +20,8 @@ export async function GET() {
       ];
     }
     return NextResponse.json({ menus });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('GET viewer-menus:', e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
@@ -38,9 +38,9 @@ export async function PUT(req: NextRequest) {
     }
     await setViewerAllowedMenus(menus);
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    if (e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (e instanceof Error && e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
