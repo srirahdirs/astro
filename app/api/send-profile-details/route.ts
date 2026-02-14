@@ -3,6 +3,8 @@ import { requireAuth, requireAdmin } from '@/lib/auth';
 import pool from '@/lib/db';
 import { sendWhatsAppViaTwilio } from '@/lib/whatsapp';
 
+export const dynamic = 'force-dynamic';
+
 const FIELD_KEYS = ['name', 'phone', 'whatsapp', 'address'] as const;
 type FieldKey = (typeof FIELD_KEYS)[number];
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth';
 import { getViewerAllowedMenus, setViewerAllowedMenus } from '@/lib/settings';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await requireAuth();
