@@ -37,19 +37,20 @@ function getSqliteDb(): import('better-sqlite3').Database {
   if (!_sqliteDb) {
     const Database = require('better-sqlite3');
     const dbPath = getSqlitePath();
-    _sqliteDb = new Database(dbPath);
+    const db = new Database(dbPath);
+    _sqliteDb = db;
     // Run schema if tables don't exist
     const schemaPath = path.join(process.cwd(), 'docs', 'sqlite-schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schema = fs.readFileSync(schemaPath, 'utf-8');
-      _sqliteDb.exec(schema);
+      db.exec(schema);
     }
     // Seed default admin if no users exist
-    const count = _sqliteDb.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number };
+    const count = db.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number };
     if (count.n === 0) {
       const { hashSync } = require('bcryptjs');
       const hash = hashSync('admin123', 10);
-      _sqliteDb.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run('admin@local', hash, 'Admin', 'admin');
+      db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run('admin@local', hash, 'Admin', 'admin');
     }
   }
   return _sqliteDb;
