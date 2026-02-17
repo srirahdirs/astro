@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth';
 import pool from '@/lib/db';
-import { sendWhatsAppViaTwilio } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,13 +56,6 @@ export async function POST(req: NextRequest) {
       : { name: profile.name, phone: profile.phone, whatsapp: profile.whatsapp_number, address: profile.address };
     const text = buildMessage(values, Object.fromEntries(FIELD_KEYS.map((k) => [k, !!fields[k]])) as Record<FieldKey, boolean>);
 
-    const sendViaTwilio = (body.send_via_twilio as boolean) === true;
-    let twilioResults: { number: string; ok: boolean; sid?: string; error?: string }[] | undefined;
-    if (sendViaTwilio) {
-      const { results } = await sendWhatsAppViaTwilio(whatsappNumbers, text);
-      twilioResults = results;
-    }
-
     const whatsappLinks = whatsappNumbers.map((num) => ({
       number: num,
       url: `https://wa.me/${num}?text=${encodeURIComponent(text)}`,
@@ -80,7 +72,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       whatsappLinks,
-      twilioResults,
     });
   } catch (e: unknown) {
     if (e instanceof Error && e.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

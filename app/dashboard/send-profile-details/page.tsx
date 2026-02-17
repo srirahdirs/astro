@@ -38,10 +38,7 @@ export default function SendProfileDetailsPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     whatsappLinks?: { number: string; url: string }[];
-    twilioResults?: { number: string; ok: boolean; sid?: string; error?: string }[];
   } | null>(null);
-  const [sendViaTwilio, setSendViaTwilio] = useState(false);
-  const [twilioConfigured, setTwilioConfigured] = useState(false);
   const [error, setError] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -52,13 +49,6 @@ export default function SendProfileDetailsPage() {
       return next;
     });
   }
-
-  useEffect(() => {
-    fetch('/api/whatsapp-status')
-      .then((r) => r.json())
-      .then((d) => setTwilioConfigured(!!d?.twilioConfigured))
-      .catch(() => setTwilioConfigured(false));
-  }, []);
 
   useEffect(() => {
     if (!profileSearch.trim()) {
@@ -155,7 +145,6 @@ export default function SendProfileDetailsPage() {
         registration_id: selectedProfile.registration_id,
         fields: fieldChecks,
         payload: { name: payload.name, phone: payload.phone, whatsapp: payload.whatsapp, address: payload.address },
-        send_via_twilio: sendViaTwilio,
       };
       for (let i = 0; i < MAX_WHATSAPP_NUMBERS; i++) {
         const v = whatsappNumbers[i]?.trim().replace(/\D/g, '');
@@ -171,7 +160,7 @@ export default function SendProfileDetailsPage() {
         setError(data.error || 'Failed to send');
         return;
       }
-      setResult({ whatsappLinks: data.whatsappLinks, twilioResults: data.twilioResults });
+      setResult({ whatsappLinks: data.whatsappLinks });
     } catch {
       setError('Network error');
     } finally {
@@ -273,23 +262,6 @@ export default function SendProfileDetailsPage() {
                 </div>
               </div>
 
-              {twilioConfigured && (
-                <div>
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={sendViaTwilio}
-                      onChange={(e) => setSendViaTwilio(e.target.checked)}
-                      className="rounded border-slate-300 text-violet-600 focus:ring-violet-500"
-                    />
-                    <span className="text-sm font-medium">Send via Twilio (automatic)</span>
-                  </label>
-                  <p className="text-xs text-slate-500 mt-1">
-                    When checked, messages are sent automatically via WhatsApp. Otherwise, click links to send manually.
-                  </p>
-                </div>
-              )}
-
               <div>
                 <label className="label">WhatsApp numbers (up to 5)</label>
                 <p className="text-xs text-slate-500 mb-2">
@@ -319,25 +291,7 @@ export default function SendProfileDetailsPage() {
       {result && (
         <div className="card card-accent alert-success">
           <h2 className="section-title-accent">Ready to send</h2>
-          {result.twilioResults && result.twilioResults.length > 0 && (
-            <div className="mb-3">
-              <p className="text-sm text-slate-700 font-medium mb-2">Twilio send results:</p>
-              <ul className="space-y-1 text-sm">
-                {result.twilioResults.map((r) => (
-                  <li key={r.number}>
-                    {r.number}: {r.ok ? (
-                      <span className="text-emerald-600">Sent ✓</span>
-                    ) : (
-                      <span className="text-red-600">{r.error || 'Failed'}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <p className="text-sm text-slate-700 mb-3">
-            {result.twilioResults ? 'Or click each button to send manually:' : 'Click each button to open WhatsApp and send the message:'}
-          </p>
+          <p className="text-sm text-slate-700 mb-3">Click each button to open WhatsApp and send the message:</p>
           {result.whatsappLinks && result.whatsappLinks.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {result.whatsappLinks.map(({ number, url }) => (

@@ -1,0 +1,22 @@
+# Temporary config - outputs to dist-build to avoid file locks on dist
+# npmRebuild: false - keep better-sqlite3 built for system Node (app uses system Node to run Next.js)
+appId: com.weddinghoroscope.matcher
+npmRebuild: false
+productName: Wedding Horoscope Matcher
+asar: false
+directories:
+  output: dist-build
+files:
+  - .next/**
+  - node_modules/**
+  - public/**
+  - electron/**
+  - docs/**
+  - package.json
+win:
+  target: nsis
+  icon: public/fav.png
+  executableName: WeddingHoroscopeMatcher
+nsis:
+  oneClick: true
+  createDesktopShortcut: true

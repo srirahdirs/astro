@@ -35,22 +35,37 @@ function getSqlitePath(): string {
 
 function getSqliteDb(): import('better-sqlite3').Database {
   if (!_sqliteDb) {
-    const Database = require('better-sqlite3');
+    let Database: any;
+    try {
+      Database = require('better-sqlite3');
+    } catch (e) {
+      console.error('[db] better-sqlite3 load failed:', e);
+      throw new Error('Database module failed to load. If using Node (not Electron), run: npm rebuild better-sqlite3');
+    }
     const dbPath = getSqlitePath();
     const db = new Database(dbPath);
     _sqliteDb = db;
-    // Run schema if tables don't exist
-    const schemaPath = path.join(process.cwd(), 'docs', 'sqlite-schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      const schema = fs.readFileSync(schemaPath, 'utf-8');
-      db.exec(schema);
+    // Run schema if tables don't exist (try multiple paths for packaged app)
+    const possiblePaths = [
+      path.join(process.cwd(), 'docs', 'sqlite-schema.sql'),
+      path.join(__dirname, '..', 'docs', 'sqlite-schema.sql'),
+      path.join(process.cwd(), '..', 'docs', 'sqlite-schema.sql'),
+    ];
+    let schemaPath = possiblePaths.find((p) => fs.existsSync(p));
+    if (schemaPath) {
+      try {
+        const schema = fs.readFileSync(schemaPath, 'utf-8');
+        db.exec(schema);
+      } catch (e) {
+        console.error('[db] Schema exec error:', e);
+      }
     }
     // Seed default admin if no users exist
     const count = db.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number };
     if (count.n === 0) {
       const { hashSync } = require('bcryptjs');
       const hash = hashSync('admin123', 10);
-      db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run('admin@local', hash, 'Admin', 'admin');
+      db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run('admin@example.com', hash, 'Admin', 'admin');
     }
   }
   return _sqliteDb!;

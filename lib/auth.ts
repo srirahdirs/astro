@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import pool from './db';
 import type { User } from './db';
+import { getSession as getSessionFromCookie } from './session';
 
 const SESSION_COOKIE = 'horoscope_session';
 const SALT_ROUNDS = 10;
@@ -29,7 +30,7 @@ export async function setSession(userId: number, role: string): Promise<void> {
   const encoded = Buffer.from(payload).toString('base64');
   cookieStore.set(SESSION_COOKIE, encoded, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && !process.env.SQLITE_PATH,
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
@@ -37,16 +38,7 @@ export async function setSession(userId: number, role: string): Promise<void> {
 }
 
 export async function getSession(): Promise<{ userId: number; role: string } | null> {
-  const cookieStore = await cookies();
-  const value = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!value) return null;
-  try {
-    const payload = JSON.parse(Buffer.from(value, 'base64').toString());
-    if (payload?.userId && payload?.role) return payload as { userId: number; role: string };
-  } catch {
-    // ignore
-  }
-  return null;
+  return getSessionFromCookie();
 }
 
 export async function clearSession(): Promise<void> {

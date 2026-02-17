@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireAdmin } from '@/lib/auth';
 import pool from '@/lib/db';
-import { sendWhatsAppViaTwilio } from '@/lib/whatsapp';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -54,22 +53,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sendViaTwilio = (formData.get('send_via_twilio') as string) === 'true';
-
-    let twilioResults: { number: string; ok: boolean; sid?: string; error?: string }[] | undefined;
-    if (sendViaTwilio && whatsappNumbers.length > 0) {
-      const { results } = await sendWhatsAppViaTwilio(
-        whatsappNumbers,
-        'Your horoscope PDF is attached.',
-        { mediaUrl: fileUrl }
-      );
-      twilioResults = results;
-    }
-
-    const messageForManual = `Horoscope PDF:\n\n${fileUrl}`;
+    // Open WhatsApp with empty chat — user must attach the PDF file (click + → Document), NOT paste any link
     const whatsappLinks = whatsappNumbers.map((num) => ({
       number: num,
-      url: `https://wa.me/${num}?text=${encodeURIComponent(messageForManual)}`,
+      url: `https://wa.me/${num}`,
     }));
 
     return NextResponse.json({
@@ -77,7 +64,6 @@ export async function POST(req: NextRequest) {
       path: relativePath,
       url: fileUrl,
       whatsappLinks,
-      twilioResults,
       registration_id,
     });
   } catch (e: unknown) {

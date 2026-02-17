@@ -8,10 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "clean": "rimraf .next",
     "electron:dev": "npm run clean && next build && electron .",
     "electron:build": "npm run clean && next build && electron-builder",
-    "electron:start": "electron ."
+    "electron:start": "electron .",
+    "electron:build:safe": "powershell -ExecutionPolicy Bypass -File ./build-electron.ps1"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,8 +20,7 @@
     "mysql2": "^3.11.0",
     "next": "14.2.18",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "twilio": "^5.12.1"
+    "react-dom": "^18.3.1"
   },
   "optionalDependencies": {
     "@electron/rebuild": "^3.6.0"
@@ -31,6 +31,7 @@
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "app-builder-bin": "^5.0.0-alpha.10",
     "autoprefixer": "^10.4.20",
     "dotenv": "^16.4.5",
     "electron": "^33.2.0",
@@ -38,6 +39,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.18",
     "postcss": "^8.4.49",
+    "rimraf": "^5.0.10",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3"
   },
@@ -45,6 +47,7 @@
     "appId": "com.weddinghoroscope.matcher",
     "productName": "Wedding Horoscope Matcher",
     "asar": false,
+    "npmRebuild": false,
     "directories": {
       "output": "dist"
     },
@@ -58,7 +61,8 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "public/fav.png"
+      "icon": "public/fav.png",
+      "executableName": "WeddingHoroscopeMatcher"
     },
     "nsis": {
       "oneClick": true,

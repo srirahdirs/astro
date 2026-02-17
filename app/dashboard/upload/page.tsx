@@ -5,6 +5,22 @@ import WhatsAppNumberInput from '@/components/WhatsAppNumberInput';
 
 const MAX_WHATSAPP_NUMBERS = 5;
 
+function PdfPreview({ file }: { file: File }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const blobUrl = URL.createObjectURL(file);
+    setUrl(blobUrl);
+    return () => URL.revokeObjectURL(blobUrl);
+  }, [file]);
+  if (!url) return null;
+  return (
+    <div className="mt-3 rounded-xl border border-navy-200/60 bg-white overflow-hidden">
+      <p className="text-xs font-medium text-navy-600 px-3 py-2 bg-navy-50/50 border-b border-navy-200/60">Preview — confirm this is the correct file</p>
+      <iframe src={url} title="PDF preview" className="w-full h-[400px] border-0" />
+    </div>
+  );
+}
+
 type ProfileSuggestion = {
   registration_id: string;
   name: string;
@@ -37,11 +53,8 @@ export default function UploadHoroscopePage() {
     path: string;
     url: string;
     whatsappLinks?: { number: string; url: string }[];
-    twilioResults?: { number: string; ok: boolean; sid?: string; error?: string }[];
     registration_id?: string;
   } | null>(null);
-  const [sendViaTwilio, setSendViaTwilio] = useState(false);
-  const [twilioConfigured, setTwilioConfigured] = useState(false);
   const [error, setError] = useState('');
 
   function setWhatsappAt(index: number, value: string) {
@@ -51,13 +64,6 @@ export default function UploadHoroscopePage() {
       return next;
     });
   }
-
-  useEffect(() => {
-    fetch('/api/whatsapp-status')
-      .then((r) => r.json())
-      .then((d) => setTwilioConfigured(!!d?.twilioConfigured))
-      .catch(() => setTwilioConfigured(false));
-  }, []);
 
   useEffect(() => {
     if (!profileSearch.trim()) {
@@ -151,7 +157,6 @@ export default function UploadHoroscopePage() {
       const formData = new FormData();
       formData.set('file', fileToUpload);
       formData.set('registration_id', selectedProfile.registration_id);
-      formData.set('send_via_twilio', String(sendViaTwilio));
       whatsappNumbers.forEach((num, i) => {
         const digits = num.trim().replace(/\D/g, '');
         if (digits) formData.set(`whatsapp_${i + 1}`, digits);
@@ -167,6 +172,12 @@ export default function UploadHoroscopePage() {
       setSelectedProfile(null);
       setWhatsappNumbers(Array(MAX_WHATSAPP_NUMBERS).fill(''));
       if (fileInputRef.current) fileInputRef.current.value = '';
+      // Auto-open WhatsApp for each number (browser or app)
+      if (data.whatsappLinks?.length) {
+        data.whatsappLinks.forEach((link: { url: string }, i: number) => {
+          setTimeout(() => window.open(link.url, '_blank'), i * 400);
+        });
+      }
     } catch {
       setError('Network error');
     } finally {
@@ -178,7 +189,7 @@ export default function UploadHoroscopePage() {
     <div className="container-dashboard">
       <h1 className="page-title">Upload horoscope</h1>
       <p className="text-navy-600 mb-6">
-        Upload a horoscope PDF. Select a profile to store it with, then enter up to 5 WhatsApp numbers. After upload, click each link to open WhatsApp and send (message includes PDF link).
+        Upload a horoscope PDF, select a profile, and enter up to 5 WhatsApp numbers. After upload, open WhatsApp for each number and <strong>attach the PDF file</strong> (click + → Document). Do not paste any link — the PDF must go as a file attachment.
       </p>
 
       <form onSubmit={handleSubmit} className="card mb-6">
@@ -193,7 +204,10 @@ export default function UploadHoroscopePage() {
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               required
             />
-            <p className="text-xs text-navy-500 mt-1">PDF only. The file will be stored with the profile.</p>
+            <p className="text-xs text-navy-500 mt-1">PDF only. After upload, attach the file in WhatsApp (click + → Document). Do not paste any URL — attach the actual file.</p>
+            {file && (
+              <PdfPreview file={file} />
+            )}
           </div>
 
           <div ref={searchRef} className="relative">
@@ -266,27 +280,10 @@ export default function UploadHoroscopePage() {
             </div>
           )}
 
-          {twilioConfigured && (
-            <div>
-              <label className="inline-flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={sendViaTwilio}
-                  onChange={(e) => setSendViaTwilio(e.target.checked)}
-                  className="rounded border-navy-300 text-violet-600 focus:ring-violet-500"
-                />
-                <span className="text-sm font-medium">Send via Twilio (automatic)</span>
-              </label>
-              <p className="text-xs text-navy-500 mt-1">
-                When checked, the PDF is sent as a WhatsApp attachment. Set NEXT_PUBLIC_APP_URL to your production URL.
-              </p>
-            </div>
-          )}
-
           <div>
-            <label className="label">WhatsApp numbers (optional, up to 5)</label>
+            <label className="label">WhatsApp numbers (up to 5)</label>
             <p className="text-xs text-navy-500 mb-2">
-              Enter mobile numbers or type a Profile ID to search — select a profile to auto-fill their phone/WhatsApp.
+              Enter numbers to share with. After upload, you will attach the PDF in each chat (like the example — PDF as attachment, not link).
             </p>
             <div className="space-y-2">
               {whatsappNumbers.map((num, i) => (
@@ -303,55 +300,32 @@ export default function UploadHoroscopePage() {
         </div>
         {error && <p className="alert-error text-sm mt-2">{error}</p>}
         <button type="submit" className="btn-primary mt-4 w-full sm:w-auto" disabled={loading}>
-          {loading ? 'Uploading...' : 'Upload horoscope'}
+          {loading ? 'Saving...' : 'Upload & save horoscope'}
         </button>
       </form>
 
       {result && (
         <div className="card card-accent alert-success">
-          <h2 className="section-title-accent">Done</h2>
-          <p className="text-sm text-navy-700 mb-2">Horoscope saved.</p>
-          <p className="text-sm mb-2">
-            <a href={result.url} target="_blank" rel="noopener noreferrer" className="link">
-              Open horoscope
-            </a>
+          <h2 className="section-title-accent">Ready to share</h2>
+          <p className="text-sm text-navy-700 mb-4">
+            Horoscope saved to database. WhatsApp chats have been opened. <strong>Attach the PDF file</strong> in each chat (click + → Document → select the file from your PC). Do NOT paste any link.
           </p>
-          {result.twilioResults && result.twilioResults.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm text-navy-700 font-medium mb-2">Twilio send results:</p>
-              <ul className="space-y-1 text-sm">
-                {result.twilioResults.map((r) => (
-                  <li key={r.number}>
-                    {r.number}: {r.ok ? (
-                      <span className="text-emerald-600">Sent ✓</span>
-                    ) : (
-                      <span className="text-red-600">{r.error || 'Failed'}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           {result.whatsappLinks && result.whatsappLinks.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm text-navy-700 font-medium mb-2">
-                {result.twilioResults ? 'Or send manually — click each to open chat:' : 'Send via WhatsApp — click each to open chat and send:'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {result.whatsappLinks.map(({ number, url }) => (
-                  <a
-                    key={number}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
-                  >
-                    Send to {number}
-                  </a>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              {result.whatsappLinks.map(({ number, url }) => (
+                <a
+                  key={number}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+                >
+                  Open WhatsApp — {number}
+                </a>
+              ))}
             </div>
           )}
+          <p className="text-xs text-navy-500 mt-2">If chats did not open (popup blocked), click the buttons above.</p>
         </div>
       )}
     </div>
