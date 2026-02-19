@@ -175,7 +175,7 @@ export default function RegistrationsPage() {
               {list.map((r) => (
                 <tr key={r.id} className="border-t border-slate-200 hover:bg-slate-50 transition-colors">
                   <td className="p-3">
-                    <Link href={`/dashboard/lookup?id=${r.registration_id}`} className="link font-medium">{r.registration_id}</Link>
+                    <Link href={`/dashboard/horoscope-profile-search?id=${r.registration_id}`} className="link font-medium">{r.registration_id}</Link>
                   </td>
                   <td className="p-3 text-slate-800">{r.name}</td>
                   <td className="p-3 text-slate-600">{String(r.role).charAt(0).toUpperCase() + String(r.role).slice(1)}</td>

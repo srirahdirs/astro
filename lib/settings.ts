@@ -4,9 +4,11 @@ const KEY_VIEWER_MENUS = 'viewer_allowed_menus';
 
 const DEFAULT_VIEWER_MENUS = [
   '/dashboard',
-  '/dashboard/lookup',
+  '/dashboard/profile-search',
+  '/dashboard/horoscope-profile-search',
+  '/dashboard/profile-details-sent-search',
+  '/dashboard/received-profile-search',
   '/dashboard/registrations',
-  '/dashboard/record-share',
   '/dashboard/follow-ups',
   '/dashboard/upload',
   '/dashboard/send-profile-details',

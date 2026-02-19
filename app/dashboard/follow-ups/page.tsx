@@ -135,7 +135,7 @@ export default function FollowUpsPage() {
               {list.map((f) => (
                 <tr key={f.id} className={`border-t border-slate-200 hover:bg-slate-50 transition-colors ${f.due_date === today && f.status === 'pending' ? 'bg-amber-50' : ''}`}>
                   <td className="p-3">
-                    <Link href={`/dashboard/lookup?id=${f.registration_id}`} className="link font-medium">{f.registration_id}</Link>
+                    <Link href={`/dashboard/horoscope-profile-search?id=${f.registration_id}`} className="link font-medium">{f.registration_id}</Link>
                     <span className="text-slate-600"> – {f.registration_name}</span>
                   </td>
                   <td className="p-3 text-slate-800">{f.due_date}</td>

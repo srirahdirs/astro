@@ -13,9 +13,11 @@ export async function GET() {
     } catch {
       menus = [
         '/dashboard',
-        '/dashboard/lookup',
+        '/dashboard/profile-search',
+        '/dashboard/horoscope-profile-search',
+        '/dashboard/profile-details-sent-search',
+        '/dashboard/received-profile-search',
         '/dashboard/registrations',
-        '/dashboard/record-share',
         '/dashboard/follow-ups',
         '/dashboard/upload',
         '/dashboard/send-profile-details',

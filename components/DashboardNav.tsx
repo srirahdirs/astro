@@ -6,12 +6,11 @@ import { useState } from 'react';
 
 const links = [
   { href: '/dashboard', label: 'Home' },
-  { href: '/dashboard/lookup', label: 'Search' },
+  { href: '/dashboard/profile-search', label: 'Profile search' },
   { href: '/dashboard/registrations', label: 'Profiles' },
-  { href: '/dashboard/record-share', label: 'Add share' },
   { href: '/dashboard/follow-ups', label: 'Reminders' },
   { href: '/dashboard/upload', label: 'Upload horoscope' },
-  { href: '/dashboard/send-profile-details', label: 'Send details' },
+  { href: '/dashboard/send-profile-details', label: 'Send profile details' },
 ];
 
 export default function DashboardNav() {
